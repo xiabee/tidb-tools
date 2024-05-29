@@ -32,8 +32,8 @@ import (
 	"github.com/pingcap/tidb-tools/sync_diff_inspector/source/common"
 	"github.com/pingcap/tidb-tools/sync_diff_inspector/splitter"
 	"github.com/pingcap/tidb-tools/sync_diff_inspector/utils"
-	"github.com/pingcap/tidb/parser"
-	router "github.com/pingcap/tidb/util/table-router"
+	"github.com/pingcap/tidb/pkg/parser"
+	router "github.com/pingcap/tidb/pkg/util/table-router"
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -505,10 +505,15 @@ func TestMysqlRouter(t *testing.T) {
 	require.NoError(t, err)
 
 	// random splitter
+	// query 1: SELECT COUNT(1) cnt FROM `source_test`.`test2`
 	countRows := sqlmock.NewRows([]string{"Cnt"}).AddRow(0)
 	mock.ExpectQuery("SELECT COUNT.*").WillReturnRows(countRows)
+	// query 2: SELECT COUNT(1) cnt FROM `source_test_t`.`test_t`
+	countRows = sqlmock.NewRows([]string{"Cnt"}).AddRow(0)
+	mock.ExpectQuery("SELECT COUNT.*").WillReturnRows(countRows)
 	rangeIter, err := mysql.GetRangeIterator(ctx, nil, mysql.GetTableAnalyzer(), 3)
-	rangeIter.Next(ctx)
+	require.NoError(t, err)
+	_, err = rangeIter.Next(ctx)
 	require.NoError(t, err)
 	rangeIter.Close()
 

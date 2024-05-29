@@ -18,7 +18,9 @@ import (
 	"strings"
 
 	"github.com/pingcap/errors"
+	"github.com/pingcap/log"
 	selector "github.com/pingcap/tidb-tools/pkg/table-rule-selector"
+	"go.uber.org/zap"
 )
 
 // ActionType indicates how to handle matched items
@@ -87,17 +89,32 @@ const (
 	DropPrimaryKey         EventType = "drop primary key"
 	DropUniqueKey          EventType = "drop unique key"
 	ModifyDefaultValue     EventType = "modify default value"
-	ModifyConstraint       EventType = "modify constaints"
+	ModifyConstraint       EventType = "modify constraint"
 	ModifyColumnsOrder     EventType = "modify columns order"
 	ModifyCharset          EventType = "modify charset"
 	ModifyCollation        EventType = "modify collation"
 	RemoveAutoIncrement    EventType = "remove auto increment"
 	ModifyStorageEngine    EventType = "modify storage engine"
-	ReorganizePartion      EventType = "reorganize table partition"
+	ReorganizePartition    EventType = "reorganize table partition"
 	RebuildPartition       EventType = "rebuild table partition"
 	CoalescePartition      EventType = "coalesce table partition"
 	SplitPartition         EventType = "split table partition"
 	ExchangePartition      EventType = "exchange table partition"
+
+	ModifySchemaCharsetAndCollate EventType = "modify schema charset and collate"
+	ModifyTableCharsetAndCollate  EventType = "modify table charset and collate"
+	ModifyTableComment            EventType = "modify table comment"
+	RecoverTable                  EventType = "recover table"
+	AlterTablePartitioning        EventType = "alter table partitioning"
+	RemovePartitioning            EventType = "remove table partitioning"
+	AddColumn                     EventType = "add column"
+	SetDefaultValue               EventType = "set default value"
+	RebaseAutoID                  EventType = "rebase auto id"
+	AddPrimaryKey                 EventType = "add primary key"
+	AlterIndexVisibility          EventType = "alter index visibility"
+	AlterTTLInfo                  EventType = "alter ttl info"
+	AlterTTLRemove                EventType = "alter ttl remove"
+	MultiSchemaChange             EventType = "multi schema change"
 
 	// NullEvent is used to represents unsupported ddl event type when we
 	// convert a ast.StmtNode or a string to EventType.
@@ -139,7 +156,7 @@ func ClassifyEvent(event EventType) (EventType, error) {
 		ModifyCollation,
 		RemoveAutoIncrement,
 		ModifyStorageEngine,
-		ReorganizePartion,
+		ReorganizePartition,
 		RebuildPartition,
 		CoalescePartition,
 		SplitPartition,
@@ -152,7 +169,22 @@ func ClassifyEvent(event EventType) (EventType, error) {
 		TruncateTable,
 		DropSchema,
 		DropTablePartition,
-		TruncateTablePartition:
+		TruncateTablePartition,
+
+		ModifySchemaCharsetAndCollate,
+		ModifyTableCharsetAndCollate,
+		ModifyTableComment,
+		RecoverTable,
+		AlterTablePartitioning,
+		RemovePartitioning,
+		AddColumn,
+		SetDefaultValue,
+		RebaseAutoID,
+		AddPrimaryKey,
+		AlterIndexVisibility,
+		AlterTTLInfo,
+		AlterTTLRemove,
+		MultiSchemaChange:
 		return incompatibleDDL, nil
 	default:
 		return NullEvent, errors.NotValidf("event type %s", event)
@@ -216,7 +248,7 @@ func NewBinlogEvent(caseSensitive bool, rules []*BinlogEventRule) (*BinlogEvent,
 
 	for _, rule := range rules {
 		if err := b.AddRule(rule); err != nil {
-			return nil, errors.Annotatef(err, "initial rule %+v in binlog event filter", rule)
+			log.Error("invalid binlog event rule", zap.Any("rule", rule), zap.Error(err))
 		}
 	}
 

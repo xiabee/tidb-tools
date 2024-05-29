@@ -34,6 +34,8 @@ func (t *testFilterSuite) TestFilter(c *C) {
 		{"Test_1_*", "abc*", []EventType{DeleteEvent, InsertEvent, CreateIndex, DropIndex, DropView}, []string{"^DROP\\s+PROCEDURE", "^CREATE\\s+PROCEDURE"}, nil, Ignore},
 		{"xxx_*", "abc_*", []EventType{AllDML, NoneDDL}, nil, nil, Ignore},
 		{"yyy_*", "abc_*", []EventType{EventType("ALL DML")}, nil, nil, Do},
+		{"Test_1_*", "abc*", []EventType{"wrong event"}, []string{"^DROP\\s+PROCEDURE", "^CREATE\\s+PROCEDURE"}, nil, Ignore},
+		{"cdc", "t1", []EventType{RebaseAutoID}, nil, nil, Ignore},
 	}
 
 	cases := []struct {
@@ -56,6 +58,7 @@ func (t *testFilterSuite) TestFilter(c *C) {
 		{"yyy_1", "abc_1", InsertEvent, "", Do},
 		{"yyy_1", "abc_1", CreateIndex, "", Ignore},
 		{"test_1_a", "abc1", DropView, "", Ignore},
+		{"cdc", "t1", RebaseAutoID, "", Ignore},
 	}
 
 	// initial binlog event filter
@@ -77,6 +80,7 @@ func (t *testFilterSuite) TestFilter(c *C) {
 	rules[0].Events = []EventType{}
 	rules[1].Action = Do
 	rules[2].Events = []EventType{"ALL DDL"}
+	rules = rules[:3]
 	for _, rule := range rules {
 		err = filter.UpdateRule(rule)
 		c.Assert(err, IsNil)
@@ -273,6 +277,7 @@ func (t *testFilterSuite) TestToEventType(c *C) {
 		{"add table partition", AddTablePartition, nil},
 		{"drop taBle partition", DropTablePartition, nil},
 		{"truncate tablE parTition", TruncateTablePartition, nil},
+		{"rebase auto id", RebaseAutoID, nil},
 		{"xxx", NullEvent, errors.NotValidf("event type %s", "xxx")},
 		{"I don't know", NullEvent, errors.NotValidf("event type %s", "I don't know")},
 	}
@@ -316,6 +321,7 @@ func (t *testFilterSuite) TestClassifyEvent(c *C) {
 		{AlterTable, ddl, nil},
 		{AddTablePartition, ddl, nil},
 		{DropTablePartition, incompatibleDDL, nil},
+		{RebaseAutoID, incompatibleDDL, nil},
 		{TruncateTablePartition, incompatibleDDL, nil},
 		{"create", NullEvent, errors.NotValidf("event type %s", "create")},
 		{EventType("xxx"), NullEvent, errors.NotValidf("event type %s", "xxx")},

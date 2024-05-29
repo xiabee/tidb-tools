@@ -1,7 +1,7 @@
 package dbutil
 
 import (
-	"github.com/pingcap/tidb/parser/mysql"
+	"github.com/pingcap/tidb/pkg/parser/mysql"
 )
 
 // IsNumberType returns true if tp is number type
@@ -29,5 +29,15 @@ func IsTimeTypeAndNeedDecode(tp byte) bool {
 	if tp == mysql.TypeDatetime || tp == mysql.TypeTimestamp || tp == mysql.TypeDate {
 		return true
 	}
+	return false
+}
+
+// IsBlobType returns true if tp is Blob type
+func IsBlobType(tp byte) bool {
+	switch tp {
+	case mysql.TypeTinyBlob, mysql.TypeMediumBlob, mysql.TypeBlob, mysql.TypeLongBlob:
+		return true
+	}
+
 	return false
 }

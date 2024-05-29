@@ -39,8 +39,8 @@ import (
 	"github.com/pingcap/tidb-tools/sync_diff_inspector/source/common"
 	"github.com/pingcap/tidb-tools/sync_diff_inspector/splitter"
 	"github.com/pingcap/tidb-tools/sync_diff_inspector/utils"
-	tidbconfig "github.com/pingcap/tidb/config"
-	"github.com/pingcap/tidb/parser/model"
+	tidbconfig "github.com/pingcap/tidb/pkg/config"
+	"github.com/pingcap/tidb/pkg/parser/model"
 	"github.com/siddontang/go/ioutil2"
 	"go.uber.org/zap"
 )
@@ -775,6 +775,7 @@ func (df *Diff) removeSQLFiles(checkPointId *chunk.ChunkID) error {
 		if err != nil {
 			return errors.Trace(err)
 		}
+		defer os.RemoveAll(folderPath)
 	}
 
 	err := filepath.Walk(df.FixSQLDir, func(path string, f fs.FileInfo, err error) error {
